@@ -563,7 +563,9 @@
       countyFeatures: null,
       map: null,
       countyLayer: null,
+      legendControl: null,
       maxCountyValue: 0,
+      legendStops: [],
       workbookDateRange: '',
       lastLoadedAt: null,
       geoJsonLoaded: false
@@ -715,18 +717,27 @@
         totals.set(county, (totals.get(county) || 0) + row.employees);
       }
       state.maxCountyValue = Math.max(...totals.values(), 0);
+      state.legendStops = buildLegendStops(state.maxCountyValue);
       return totals;
+    }
+
+    function buildLegendStops(maxValue) {
+      if (!maxValue || maxValue <= 0) return [1, 2, 3, 4, 5];
+      const step = Math.max(1, Math.ceil(maxValue / 5));
+      return [1, step, step * 2, step * 3, step * 4];
     }
 
     function getColor(value) {
       if (!value) return '#1a2940';
-      const max = state.maxCountyValue || 1;
-      const ratio = value / max;
-      if (ratio > 0.8) return '#7fe7cb';
-      if (ratio > 0.6) return '#66cdea';
-      if (ratio > 0.4) return '#4f9ddd';
-      if (ratio > 0.2) return '#356fb4';
-      return '#254d88';
+      const [b0, b1, b2, b3, b4] = state.legendStops.length
+        ? state.legendStops
+        : buildLegendStops(state.maxCountyValue || 1);
+      if (value >= b4) return '#7fe7cb';
+      if (value >= b3) return '#66cdea';
+      if (value >= b2) return '#4f9ddd';
+      if (value >= b1) return '#356fb4';
+      if (value >= b0) return '#254d88';
+      return '#1a2940';
     }
 
     function getCountyStyle(feature) {
@@ -910,24 +921,34 @@
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(state.map);
 
-      const legend = L.control({ position: 'bottomright' });
-      legend.onAdd = function () {
+      state.legendControl = L.control({ position: 'bottomright' });
+      state.legendControl.onAdd = function () {
         const div = L.DomUtil.create('div', 'legend');
-        const grades = [1, 250, 1000, 2500, 5000];
-        let html = '<strong>Layoffs</strong><br />';
-        for (let i = 0; i < grades.length; i += 1) {
-          const from = grades[i];
-          const to = grades[i + 1];
-          html += `<i style="background:${getColor(from)}"></i> ${formatNumber(from)}${to ? `&ndash;${formatNumber(to - 1)}` : '+'}<br>`;
-        }
-        div.innerHTML = html;
         return div;
       };
-      legend.addTo(state.map);
+      state.legendControl.addTo(state.map);
+    }
+
+    function renderLegend() {
+      if (!state.map || !state.legendControl) return;
+      const container = state.legendControl.getContainer();
+      if (!container) return;
+
+      const grades = state.legendStops.length
+        ? state.legendStops
+        : buildLegendStops(state.maxCountyValue || 1);
+      let html = '<strong>Layoffs</strong><br />';
+      for (let i = 0; i < grades.length; i += 1) {
+        const from = grades[i];
+        const to = grades[i + 1];
+        html += `<i style="background:${getColor(from)}"></i> ${formatNumber(from)}${to ? `&ndash;${formatNumber(to - 1)}` : '+'}<br>`;
+      }
+      container.innerHTML = html;
     }
 
     async function renderMap() {
       ensureMap();
+      renderLegend();
 
       if (!state.geoJsonLoaded) {
         const response = await fetch(COUNTY_GEOJSON_URL);
