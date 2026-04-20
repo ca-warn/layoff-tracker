@@ -1,0 +1,1016 @@
+﻿﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>California WARN Watch</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: rgba(10, 19, 35, 0.82);
+      --panel-2: rgba(16, 29, 50, 0.9);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f5f7fb;
+      --muted: #b2bfd4;
+      --accent: #5eb3ff;
+      --accent-2: #8cf2d3;
+      --danger: #ff8d8d;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(94, 179, 255, 0.18), transparent 24%),
+        radial-gradient(circle at top right, rgba(140, 242, 211, 0.12), transparent 20%),
+        linear-gradient(180deg, #07101d 0%, #091727 45%, #08111f 100%);
+    }
+
+    a { color: var(--accent); }
+
+    .shell {
+      width: min(1400px, calc(100% - 32px));
+      margin: 24px auto 48px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(94, 179, 255, 0.28);
+      border-radius: 999px;
+      color: var(--accent-2);
+      background: rgba(94, 179, 255, 0.08);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4.2vw, 4rem);
+      line-height: 1;
+      margin: 14px 0 12px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--muted);
+      max-width: 900px;
+      margin: 0 0 20px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button,
+    .button-link {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      text-decoration: none;
+    }
+
+    button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), #7cc2ff);
+      color: #06111d;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .status {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .kpi {
+      grid-column: span 4;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kpi-value {
+      font-size: clamp(1.8rem, 3.2vw, 3.1rem);
+      line-height: 1.05;
+      margin: 10px 0;
+      letter-spacing: -0.04em;
+    }
+
+    .kpi-meta {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .leaderboard,
+    .map-panel {
+      grid-column: span 6;
+    }
+
+    .leaderboard-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .leaderboard-item {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .leaderboard-rank {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(94, 179, 255, 0.14);
+      color: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .leaderboard-name {
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .leaderboard-sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 3px;
+    }
+
+    .leaderboard-value {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-size: 1.05rem;
+    }
+
+    .map-panel,
+    .table-panel {
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 560px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #0f1c2e;
+    }
+
+    .legend {
+      background: rgba(8,17,31,0.92);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+      line-height: 1.5;
+    }
+
+    .legend i {
+      width: 14px;
+      height: 14px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.95;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    .table-panel {
+      grid-column: 1 / -1;
+    }
+
+    .table-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .search,
+    .select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search {
+      min-width: min(100%, 380px);
+      flex: 1;
+    }
+
+    .meta-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1020px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(8,17,31,0.98);
+    }
+
+    th,
+    td {
+      padding: 14px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: #dfe7f5;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(140,242,211,0.1);
+      border: 1px solid rgba(140,242,211,0.18);
+      color: #d6fff3;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pagination {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .error {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 141, 141, 0.22);
+      background: rgba(255, 141, 141, 0.08);
+      color: #ffd1d1;
+      line-height: 1.55;
+    }
+
+    .footnote {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .kpi,
+      .leaderboard,
+      .map-panel {
+        grid-column: 1 / -1;
+      }
+
+      .status {
+        margin-left: 0;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .shell {
+        width: min(100% - 18px, 1400px);
+        margin-top: 10px;
+      }
+
+      .hero,
+      .panel {
+        padding: 16px;
+        border-radius: 18px;
+      }
+
+      #map {
+        height: 420px;
+      }
+
+      .leaderboard-item {
+        grid-template-columns: 40px 1fr;
+      }
+
+      .leaderboard-value {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="eyebrow">California WARN dashboard</div>
+      <h1>WARN Watch</h1>
+      <p class="subtitle">
+        A fully front-end dashboard that pulls the California WARN spreadsheet, surfaces the next layoff event,
+        ranks the biggest layoffs by company, paints counties by impact, and exposes a polished browser for the raw records.
+      </p>
+      <div class="hero-actions">
+        <button class="primary" id="reloadBtn">Reload live data</button>
+        <button class="secondary" id="uploadBtn">Load local .xlsx instead</button>
+        <a class="button-link secondary" href="https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx" target="_blank" rel="noreferrer">Open source spreadsheet</a>
+        <div class="status" id="statusText">Waiting to load…</div>
+      </div>
+      <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
+      <div class="error" id="errorBox" hidden></div>
+    </section>
+
+    <section class="grid">
+      <article class="panel kpi">
+        <div>
+          <div class="kpi-label">Next up</div>
+          <div class="kpi-value" id="nextCompany">—</div>
+          <div class="kpi-meta" id="nextMeta">Waiting for data.</div>
+        </div>
+        <div class="footnote" id="nextFootnote"></div>
+      </article>
+
+      <article class="panel kpi">
+        <div>
+          <div class="kpi-label">Total layoffs in current file</div>
+          <div class="kpi-value" id="totalLayoffs">—</div>
+          <div class="kpi-meta" id="totalMeta">Across all rows in the detailed WARN report.</div>
+        </div>
+      </article>
+
+      <article class="panel kpi">
+        <div>
+          <div class="kpi-label">Counties impacted</div>
+          <div class="kpi-value" id="countyCount">—</div>
+          <div class="kpi-meta" id="countyMeta">Unique California counties represented in the current workbook.</div>
+        </div>
+      </article>
+
+      <article class="panel leaderboard">
+        <h2 class="section-title">Most “efficient” leaderboard</h2>
+        <div class="meta-note">Top 10 companies ranked by total layoffs in the current file.</div>
+        <div class="leaderboard-list" id="leaderboard"></div>
+      </article>
+
+      <article class="panel map-panel">
+        <h2 class="section-title">County impact map</h2>
+        <div class="meta-note">California counties are shaded by total layoffs from the workbook.</div>
+        <div id="map"></div>
+        <div class="footnote">Hover or tap a county for totals. Counties without reported layoffs remain lightly shaded.</div>
+      </article>
+
+      <article class="panel table-panel">
+        <h2 class="section-title">Raw WARN data</h2>
+        <div class="table-toolbar">
+          <input id="searchInput" class="search" type="search" placeholder="Search company, county, industry, address…" />
+          <select id="countyFilter" class="select">
+            <option value="">All counties</option>
+          </select>
+          <select id="rowsPerPage" class="select">
+            <option value="10">10 rows</option>
+            <option value="25" selected>25 rows</option>
+            <option value="50">50 rows</option>
+            <option value="100">100 rows</option>
+          </select>
+          <div class="meta-note" id="tableCount">0 rows</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="county">County</th>
+                <th data-sort="effectiveDate">Effective date</th>
+                <th data-sort="company">Company</th>
+                <th data-sort="employees">Employees</th>
+                <th data-sort="layoffClosure">Type</th>
+                <th data-sort="noticeDate">Notice date</th>
+                <th data-sort="processedDate">Processed date</th>
+                <th data-sort="industry">Industry</th>
+                <th data-sort="address">Address</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="meta-note" id="pageMeta"></div>
+          <div class="pagination-controls">
+            <button class="secondary" id="prevPage">Previous</button>
+            <button class="secondary" id="nextPageBtn">Next</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    const WARN_URL = 'https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx';
+    const COUNTY_GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/california-counties.geojson';
+    const TODAY = new Date();
+
+    const state = {
+      rawRows: [],
+      filteredRows: [],
+      sortKey: 'effectiveDate',
+      sortDir: 'asc',
+      currentPage: 1,
+      rowsPerPage: 25,
+      countyTotals: new Map(),
+      countyFeatures: null,
+      map: null,
+      countyLayer: null,
+      maxCountyValue: 0,
+      workbookDateRange: '',
+      lastLoadedAt: null,
+      geoJsonLoaded: false
+    };
+
+    const els = {
+      reloadBtn: document.getElementById('reloadBtn'),
+      uploadBtn: document.getElementById('uploadBtn'),
+      fileInput: document.getElementById('fileInput'),
+      statusText: document.getElementById('statusText'),
+      errorBox: document.getElementById('errorBox'),
+      nextCompany: document.getElementById('nextCompany'),
+      nextMeta: document.getElementById('nextMeta'),
+      nextFootnote: document.getElementById('nextFootnote'),
+      totalLayoffs: document.getElementById('totalLayoffs'),
+      totalMeta: document.getElementById('totalMeta'),
+      countyCount: document.getElementById('countyCount'),
+      countyMeta: document.getElementById('countyMeta'),
+      leaderboard: document.getElementById('leaderboard'),
+      tableBody: document.getElementById('tableBody'),
+      searchInput: document.getElementById('searchInput'),
+      countyFilter: document.getElementById('countyFilter'),
+      rowsPerPage: document.getElementById('rowsPerPage'),
+      tableCount: document.getElementById('tableCount'),
+      pageMeta: document.getElementById('pageMeta'),
+      prevPage: document.getElementById('prevPage'),
+      nextPageBtn: document.getElementById('nextPageBtn')
+    };
+
+    function formatDate(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }).format(date);
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat('en-US').format(Number(value) || 0);
+    }
+
+    function normalizeCounty(value) {
+      return String(value || '')
+        .replace(/\s+County$/i, '')
+        .replace(/\s+Parish$/i, '')
+        .trim();
+    }
+
+    function parseExcelDate(value) {
+      if (value instanceof Date) return value;
+      if (typeof value === 'number' && window.XLSX) {
+        const parsed = XLSX.SSF.parse_date_code(value);
+        if (parsed) return new Date(parsed.y, parsed.m - 1, parsed.d);
+      }
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function slug(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    }
+
+    function sumEmployees(rows) {
+      return rows.reduce((sum, row) => sum + (Number(row.employees) || 0), 0);
+    }
+
+    function setStatus(message) {
+      els.statusText.textContent = message;
+    }
+
+    function showError(message) {
+      els.errorBox.hidden = false;
+      els.errorBox.innerHTML = message;
+    }
+
+    function clearError() {
+      els.errorBox.hidden = true;
+      els.errorBox.textContent = '';
+    }
+
+    function computeWorkbookDateRange(rows) {
+      const dates = rows.map(r => r.effectiveDate).filter(Boolean).sort((a, b) => a - b);
+      if (!dates.length) return '';
+      return `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`;
+    }
+
+    function buildRowsFromSheet(workbook) {
+      const sheet = workbook.Sheets['Detailed WARN Report '] || workbook.Sheets[workbook.SheetNames[2]];
+      const matrix = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+        defval: ''
+      });
+
+      const rows = [];
+      for (let i = 2; i < matrix.length; i += 1) {
+        const row = matrix[i] || [];
+        const county = String(row[0] || '').trim();
+        const company = String(row[4] || '').trim();
+        const employees = Number(String(row[6] || '').replace(/[^\d.-]/g, '')) || 0;
+        if (!county || !company || !employees) continue;
+
+        rows.push({
+          county,
+          countyNormalized: normalizeCounty(county),
+          noticeDate: parseExcelDate(row[1]),
+          processedDate: parseExcelDate(row[2]),
+          effectiveDate: parseExcelDate(row[3]),
+          company,
+          layoffClosure: String(row[5] || '').trim(),
+          employees,
+          address: String(row[7] || '').trim(),
+          industry: String(row[8] || '').trim(),
+          _search: slug([row[0], row[4], row[5], row[7], row[8]].join(' '))
+        });
+      }
+      return rows;
+    }
+
+    function computeCountyTotals(rows) {
+      const totals = new Map();
+      for (const row of rows) {
+        const county = row.countyNormalized;
+        totals.set(county, (totals.get(county) || 0) + row.employees);
+      }
+      state.maxCountyValue = Math.max(...totals.values(), 0);
+      return totals;
+    }
+
+    function getColor(value) {
+      if (!value) return '#1a2940';
+      const max = state.maxCountyValue || 1;
+      const ratio = value / max;
+      if (ratio > 0.8) return '#7fe7cb';
+      if (ratio > 0.6) return '#66cdea';
+      if (ratio > 0.4) return '#4f9ddd';
+      if (ratio > 0.2) return '#356fb4';
+      return '#254d88';
+    }
+
+    function getCountyStyle(feature) {
+      const countyName = normalizeCounty(feature.properties.name || feature.properties.NAME || '');
+      const value = state.countyTotals.get(countyName) || 0;
+      return {
+        color: 'rgba(255,255,255,0.18)',
+        weight: 1,
+        fillColor: getColor(value),
+        fillOpacity: 0.9
+      };
+    }
+
+    function buildLeaderboard(rows) {
+      const companyMap = new Map();
+      for (const row of rows) {
+        if (!companyMap.has(row.company)) {
+          companyMap.set(row.company, {
+            company: row.company,
+            totalEmployees: 0,
+            eventCount: 0,
+            counties: new Set()
+          });
+        }
+        const entry = companyMap.get(row.company);
+        entry.totalEmployees += row.employees;
+        entry.eventCount += 1;
+        entry.counties.add(row.countyNormalized);
+      }
+
+      return [...companyMap.values()]
+        .sort((a, b) => b.totalEmployees - a.totalEmployees)
+        .slice(0, 10);
+    }
+
+    function renderLeaderboard(rows) {
+      const items = buildLeaderboard(rows);
+      els.leaderboard.innerHTML = items.map((item, index) => `
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">${index + 1}</div>
+          <div>
+            <div class="leaderboard-name">${escapeHtml(item.company)}</div>
+            <div class="leaderboard-sub">${item.eventCount} event${item.eventCount === 1 ? '' : 's'} across ${item.counties.size} count${item.counties.size === 1 ? 'y' : 'ies'}</div>
+          </div>
+          <div class="leaderboard-value">${formatNumber(item.totalEmployees)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderKpis(rows) {
+      const upcoming = rows
+        .filter(row => row.effectiveDate instanceof Date && row.effectiveDate >= startOfDay(TODAY))
+        .sort((a, b) => a.effectiveDate - b.effectiveDate || b.employees - a.employees);
+
+      const next = upcoming[0] || rows
+        .filter(row => row.effectiveDate instanceof Date)
+        .sort((a, b) => b.effectiveDate - a.effectiveDate)[0];
+
+      if (next) {
+        const tied = upcoming.filter(row => sameDay(row.effectiveDate, next.effectiveDate));
+        els.nextCompany.textContent = next.company;
+        els.nextMeta.innerHTML = `${formatNumber(next.employees)} workers • ${escapeHtml(next.county)} • ${formatDate(next.effectiveDate)}`;
+        els.nextFootnote.textContent = tied.length > 1
+          ? `There are ${tied.length} WARN entries on that date. This card shows the largest one.`
+          : 'Earliest upcoming effective date in the workbook.';
+      } else {
+        els.nextCompany.textContent = 'No dated layoff events found';
+        els.nextMeta.textContent = 'The workbook did not include parsable effective dates.';
+        els.nextFootnote.textContent = '';
+      }
+
+      els.totalLayoffs.textContent = formatNumber(sumEmployees(rows));
+      els.totalMeta.textContent = state.workbookDateRange
+        ? `Detailed WARN report effective-date range: ${state.workbookDateRange}`
+        : 'Across all rows in the detailed WARN report.';
+      els.countyCount.textContent = formatNumber(new Set(rows.map(r => r.countyNormalized)).size);
+      els.countyMeta.textContent = `${formatNumber(rows.length)} detailed WARN rows loaded.`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function sameDay(a, b) {
+      return a && b
+        && a.getFullYear() === b.getFullYear()
+        && a.getMonth() === b.getMonth()
+        && a.getDate() === b.getDate();
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function sortRows(rows) {
+      const dir = state.sortDir === 'asc' ? 1 : -1;
+      return [...rows].sort((a, b) => {
+        const av = a[state.sortKey];
+        const bv = b[state.sortKey];
+
+        if (av instanceof Date || bv instanceof Date) {
+          return (((av && av.getTime()) || 0) - ((bv && bv.getTime()) || 0)) * dir;
+        }
+        if (typeof av === 'number' || typeof bv === 'number') {
+          return ((Number(av) || 0) - (Number(bv) || 0)) * dir;
+        }
+        return String(av || '').localeCompare(String(bv || '')) * dir;
+      });
+    }
+
+    function applyFilters() {
+      const query = slug(els.searchInput.value);
+      const county = els.countyFilter.value;
+      const filtered = state.rawRows.filter(row => {
+        const matchesQuery = !query || row._search.includes(query);
+        const matchesCounty = !county || row.countyNormalized === county;
+        return matchesQuery && matchesCounty;
+      });
+      state.filteredRows = sortRows(filtered);
+      state.currentPage = 1;
+      renderTable();
+    }
+
+    function renderTable() {
+      const startIndex = (state.currentPage - 1) * state.rowsPerPage;
+      const endIndex = startIndex + state.rowsPerPage;
+      const pageRows = state.filteredRows.slice(startIndex, endIndex);
+
+      els.tableBody.innerHTML = pageRows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.county)}</td>
+          <td><span class="pill">${formatDate(row.effectiveDate)}</span></td>
+          <td>${escapeHtml(row.company)}</td>
+          <td>${formatNumber(row.employees)}</td>
+          <td>${escapeHtml(row.layoffClosure)}</td>
+          <td>${formatDate(row.noticeDate)}</td>
+          <td>${formatDate(row.processedDate)}</td>
+          <td>${escapeHtml(row.industry)}</td>
+          <td>${escapeHtml(row.address)}</td>
+        </tr>
+      `).join('');
+
+      const total = state.filteredRows.length;
+      const pageCount = Math.max(1, Math.ceil(total / state.rowsPerPage));
+      els.tableCount.textContent = `${formatNumber(total)} row${total === 1 ? '' : 's'}`;
+      els.pageMeta.textContent = total
+        ? `Showing ${formatNumber(startIndex + 1)}–${formatNumber(Math.min(endIndex, total))} of ${formatNumber(total)}`
+        : 'No rows match the current filters.';
+      els.prevPage.disabled = state.currentPage <= 1;
+      els.nextPageBtn.disabled = state.currentPage >= pageCount;
+    }
+
+    function populateCountyFilter(rows) {
+      const counties = [...new Set(rows.map(row => row.countyNormalized))].sort((a, b) => a.localeCompare(b));
+      const current = els.countyFilter.value;
+      els.countyFilter.innerHTML = '<option value="">All counties</option>' + counties
+        .map(county => `<option value="${escapeHtml(county)}">${escapeHtml(county)}</option>`)
+        .join('');
+      els.countyFilter.value = counties.includes(current) ? current : '';
+    }
+
+    function ensureMap() {
+      if (state.map) return;
+      state.map = L.map('map', {
+        zoomControl: true,
+        minZoom: 5,
+        maxZoom: 10,
+        attributionControl: true
+      }).setView([37.2, -119.7], 6);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(state.map);
+
+      const legend = L.control({ position: 'bottomright' });
+      legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'legend');
+        const grades = [1, 250, 1000, 2500, 5000];
+        let html = '<strong>Layoffs</strong><br />';
+        for (let i = 0; i < grades.length; i += 1) {
+          const from = grades[i];
+          const to = grades[i + 1];
+          html += `<i style="background:${getColor(from)}"></i> ${formatNumber(from)}${to ? `&ndash;${formatNumber(to - 1)}` : '+'}<br>`;
+        }
+        div.innerHTML = html;
+        return div;
+      };
+      legend.addTo(state.map);
+    }
+
+    async function renderMap() {
+      ensureMap();
+
+      if (!state.geoJsonLoaded) {
+        const response = await fetch(COUNTY_GEOJSON_URL);
+        if (!response.ok) throw new Error('Unable to load county boundaries.');
+        state.countyFeatures = await response.json();
+        state.geoJsonLoaded = true;
+      }
+
+      if (state.countyLayer) {
+        state.countyLayer.remove();
+      }
+
+      state.countyLayer = L.geoJSON(state.countyFeatures, {
+        style: getCountyStyle,
+        onEachFeature(feature, layer) {
+          const countyName = normalizeCounty(feature.properties.name || feature.properties.NAME || '');
+          const total = state.countyTotals.get(countyName) || 0;
+          layer.bindPopup(`
+            <strong>${escapeHtml(countyName)} County</strong><br>
+            Total layoffs: ${formatNumber(total)}
+          `);
+          layer.on({
+            mouseover() {
+              this.setStyle({ weight: 2, color: '#d9f5ff' });
+            },
+            mouseout() {
+              state.countyLayer.resetStyle(this);
+            }
+          });
+        }
+      }).addTo(state.map);
+    }
+
+    function attachListeners() {
+      els.reloadBtn.addEventListener('click', () => loadLiveWorkbook());
+      els.uploadBtn.addEventListener('click', () => els.fileInput.click());
+      els.fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const buffer = await file.arrayBuffer();
+        await hydrateDashboard(buffer, `Loaded local file: ${file.name}`);
+      });
+
+      els.searchInput.addEventListener('input', applyFilters);
+      els.countyFilter.addEventListener('change', applyFilters);
+      els.rowsPerPage.addEventListener('change', () => {
+        state.rowsPerPage = Number(els.rowsPerPage.value) || 25;
+        state.currentPage = 1;
+        renderTable();
+      });
+
+      els.prevPage.addEventListener('click', () => {
+        if (state.currentPage > 1) {
+          state.currentPage -= 1;
+          renderTable();
+        }
+      });
+
+      els.nextPageBtn.addEventListener('click', () => {
+        const pageCount = Math.ceil(state.filteredRows.length / state.rowsPerPage);
+        if (state.currentPage < pageCount) {
+          state.currentPage += 1;
+          renderTable();
+        }
+      });
+
+      document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.sort;
+          if (state.sortKey === key) {
+            state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            state.sortKey = key;
+            state.sortDir = key === 'employees' ? 'desc' : 'asc';
+          }
+          state.filteredRows = sortRows(state.filteredRows);
+          state.currentPage = 1;
+          renderTable();
+        });
+      });
+    }
+
+    async function hydrateDashboard(buffer, statusPrefix = 'Loaded live workbook') {
+      clearError();
+      setStatus('Parsing workbook…');
+      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+      const rows = buildRowsFromSheet(workbook);
+
+      state.rawRows = rows;
+      state.filteredRows = rows;
+      state.countyTotals = computeCountyTotals(rows);
+      state.workbookDateRange = computeWorkbookDateRange(rows);
+      state.lastLoadedAt = new Date();
+
+      populateCountyFilter(rows);
+      renderKpis(rows);
+      renderLeaderboard(rows);
+      applyFilters();
+      await renderMap();
+
+      setStatus(`${statusPrefix} • ${formatDate(state.lastLoadedAt)} ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(state.lastLoadedAt)}`);
+    }
+
+    async function loadLiveWorkbook() {
+      clearError();
+      setStatus('Downloading live workbook…');
+      try {
+        const response = await fetch(WARN_URL);
+        if (!response.ok) {
+          throw new Error(`Spreadsheet request failed with status ${response.status}.`);
+        }
+        const buffer = await response.arrayBuffer();
+        await hydrateDashboard(buffer);
+      } catch (error) {
+        console.error(error);
+        showError(`
+          <strong>Live fetch failed.</strong><br>
+          This app is fully front-end and GitHub Pages-safe, but the California EDD server may block cross-origin requests from some browsers or deployments.<br><br>
+          You can still use the site by clicking <strong>“Load local .xlsx instead”</strong> and selecting the same WARN file manually. If you want guaranteed unattended refreshes on GitHub Pages, mirror the workbook into the repo and point <code>WARN_URL</code> at the local copy.
+        `);
+        setStatus('Live fetch failed. Waiting for local file upload.');
+      }
+    }
+
+    attachListeners();
+    ensureMap();
+    loadLiveWorkbook();
+  </script>
+</body>
+</html>
