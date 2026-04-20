@@ -1208,7 +1208,7 @@
       });
     }
 
-    async function hydrateDashboard(buffer, statusPrefix = 'Loaded live workbook') {
+    async function hydrateDashboard(buffer) {
       clearError();
       setStatus('Parsing workbook…');
       const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
@@ -1239,7 +1239,7 @@
         `);
       }
 
-      setStatus(`${statusPrefix} • ${formatDate(state.lastLoadedAt)} ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(state.lastLoadedAt)}`);
+      setStatus('');
     }
 
     async function loadLiveWorkbook() {
