@@ -901,8 +901,9 @@
 
     function applyNextCompaniesFilter() {
       if (!(state.nextUpTargetDate instanceof Date)) return;
-      state.nextUpDateFilter = new Date(state.nextUpTargetDate.getTime());
+      state.nextUpDateFilter = null;
       els.searchInput.value = '';
+      els.countyFilter.value = '';
       state.sortKey = 'effectiveDate';
       state.sortDir = 'asc';
       state.currentPage = 1;
