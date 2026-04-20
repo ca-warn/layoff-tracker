@@ -259,6 +259,15 @@
       margin-top: 4px;
     }
 
+    .search-panel {
+      margin-bottom: 20px;
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
     .table-panel {
       grid-column: 1 / -1;
     }
@@ -379,6 +388,10 @@
       margin-top: 12px;
     }
 
+    .search-active .hide-on-search {
+      display: none;
+    }
+
     @media (max-width: 1100px) {
       .kpi,
       .leaderboard,
@@ -402,6 +415,10 @@
       .panel {
         padding: 16px;
         border-radius: 18px;
+      }
+
+      .search-panel {
+        padding: 12px 16px;
       }
 
       #map {
@@ -437,8 +454,13 @@
       <div class="error" id="errorBox" hidden></div>
     </section>
 
+    <section class="panel search-panel">
+      <input id="searchInput" class="search" type="search" placeholder="Search company, county, industry, address…" />
+      <div class="meta-note">Type to focus on matching WARN rows only.</div>
+    </section>
+
     <section class="grid">
-      <article class="panel kpi">
+      <article class="panel kpi hide-on-search">
         <div>
           <div class="kpi-label">Next up</div>
           <div class="kpi-value" id="nextCompany">—</div>
@@ -447,7 +469,7 @@
         <div class="footnote" id="nextFootnote"></div>
       </article>
 
-      <article class="panel kpi">
+      <article class="panel kpi hide-on-search">
         <div>
           <div class="kpi-label">Total layoffs in current file</div>
           <div class="kpi-value" id="totalLayoffs">—</div>
@@ -455,7 +477,7 @@
         </div>
       </article>
 
-      <article class="panel kpi">
+      <article class="panel kpi hide-on-search">
         <div>
           <div class="kpi-label">Counties impacted</div>
           <div class="kpi-value" id="countyCount">—</div>
@@ -463,13 +485,13 @@
         </div>
       </article>
 
-      <article class="panel leaderboard">
+      <article class="panel leaderboard hide-on-search">
         <h2 class="section-title">Layoff leaders</h2>
         <div class="meta-note">Top 10 companies ranked by total layoffs in the current file.</div>
         <div class="leaderboard-list" id="leaderboard"></div>
       </article>
 
-      <article class="panel map-panel">
+      <article class="panel map-panel hide-on-search">
         <h2 class="section-title">County impact map</h2>
         <div class="meta-note">California counties are shaded by total layoffs from the workbook.</div>
         <div id="map"></div>
@@ -479,7 +501,6 @@
       <article class="panel table-panel">
         <h2 class="section-title">Raw WARN data</h2>
         <div class="table-toolbar">
-          <input id="searchInput" class="search" type="search" placeholder="Search company, county, industry, address…" />
           <select id="countyFilter" class="select">
             <option value="">All counties</option>
           </select>
@@ -562,6 +583,7 @@
       countyCount: document.getElementById('countyCount'),
       countyMeta: document.getElementById('countyMeta'),
       leaderboard: document.getElementById('leaderboard'),
+      grid: document.querySelector('.grid'),
       tableBody: document.getElementById('tableBody'),
       searchInput: document.getElementById('searchInput'),
       countyFilter: document.getElementById('countyFilter'),
@@ -830,6 +852,8 @@
       });
       state.filteredRows = sortRows(filtered);
       state.currentPage = 1;
+      const isSearching = Boolean(query);
+      els.grid.classList.toggle('search-active', isSearching);
       renderTable();
     }
 
