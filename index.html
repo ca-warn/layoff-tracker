@@ -927,7 +927,7 @@
         els.showNextCompaniesLink.hidden = false;
         els.nextFootnote.textContent = tied.length > 1
           ? `There are ${tied.length} WARN entries on that date.`
-          : 'Earliest upcoming effective date in the workbook.';
+          : '';
       } else {
         els.nextCompany.textContent = 'No dated layoff events found';
         els.nextCompany.disabled = true;
