@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -424,13 +424,13 @@
       <div class="eyebrow">California WARN dashboard</div>
       <h1>WARN Watch</h1>
       <p class="subtitle">
-        A fully front-end dashboard that pulls the California WARN spreadsheet, surfaces the next layoff event,
+        A fully front-end dashboard that reads the California WARN spreadsheet from this repo, surfaces the next layoff event,
         ranks the biggest layoffs by company, paints counties by impact, and exposes a polished browser for the raw records.
       </p>
       <div class="hero-actions">
         <button class="primary" id="reloadBtn">Reload live data</button>
-        <button class="secondary" id="uploadBtn">Load local .xlsx instead</button>
-        <a class="button-link secondary" href="https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx" target="_blank" rel="noreferrer">Open source spreadsheet</a>
+        <button class="secondary" id="uploadBtn">Load manual .xlsx instead</button>
+        <a class="button-link secondary" href="./data/warn_report.xlsx" target="_blank" rel="noreferrer">Open local spreadsheet</a>
         <div class="status" id="statusText">Waiting to load…</div>
       </div>
       <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
@@ -527,7 +527,7 @@
     crossorigin=""
   ></script>
   <script>
-    const WARN_URL = 'https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx';
+    const WARN_URL = './data/warn_report.xlsx';
     const COUNTY_GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/california-counties.geojson';
     const TODAY = new Date();
 
@@ -999,12 +999,7 @@
         await hydrateDashboard(buffer);
       } catch (error) {
         console.error(error);
-        showError(`
-          <strong>Live fetch failed.</strong><br>
-          This app is fully front-end and GitHub Pages-safe, but the California EDD server may block cross-origin requests from some browsers or deployments.<br><br>
-          You can still use the site by clicking <strong>“Load local .xlsx instead”</strong> and selecting the same WARN file manually. If you want guaranteed unattended refreshes on GitHub Pages, mirror the workbook into the repo and point <code>WARN_URL</code> at the local copy.
-        `);
-        setStatus('Live fetch failed. Waiting for local file upload.');
+        showError(`\n          <strong>Data refresh failed.</strong><br>\n          The app could not load the local workbook from <code>${WARN_URL}</code>.<br><br>\n          Confirm that the GitHub Action has committed <code>data/warn_report.xlsx</code> and that GitHub Pages is serving the latest build. You can still use <strong>“Load manual .xlsx instead”</strong> to preview a file locally.\n        `);\n        setStatus('Data refresh failed. Waiting for manual file upload.');
       }
     }
 
