@@ -152,8 +152,7 @@
     .kpi-label {
       color: var(--muted);
       font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.02em;
     }
 
     .kpi-value {
@@ -195,6 +194,8 @@
       border-radius: 16px;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.06);
+      width: 100%;
+      text-align: left;
     }
 
     .leaderboard-rank {
@@ -223,6 +224,11 @@
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       font-size: 1.05rem;
+    }
+
+    .leaderboard-item:hover {
+      border-color: rgba(140, 242, 211, 0.4);
+      background: rgba(140, 242, 211, 0.08);
     }
 
     .map-panel,
@@ -294,6 +300,7 @@
     .search {
       min-width: min(100%, 380px);
       flex: 1;
+      font-size: 18px;
     }
 
     .meta-note {
@@ -333,8 +340,7 @@
     th {
       color: #dfe7f5;
       font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.02em;
       cursor: pointer;
       user-select: none;
     }
@@ -445,19 +451,14 @@
 <body>
   <div class="shell">
     <section class="hero">
-      <div class="eyebrow">California WARN dashboard</div>
-      <h1>WARN Watch</h1>
+      <h1>California WARN Watch.</h1>
       <p class="subtitle">
-        A fully front-end dashboard that reads the California WARN spreadsheet from this repo, surfaces the next layoff event,
-        ranks the biggest layoffs by company, paints counties by impact, and exposes a polished browser for the raw records.
+        a dashboard tracking layoffs across California using public data published by the state.
       </p>
       <div class="hero-actions">
-        <button class="primary" id="reloadBtn">Reload live data</button>
-        <button class="secondary" id="uploadBtn">Load manual .xlsx instead</button>
-        <a class="button-link secondary" href="./data/warn_report.xlsx" target="_blank" rel="noreferrer">Open local spreadsheet</a>
+        <a class="button-link primary" href="./data/warn_report.xlsx" download>Download Data</a>
         <div class="status" id="statusText">Waiting to load…</div>
       </div>
-      <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
       <div class="error" id="errorBox" hidden></div>
     </section>
 
@@ -468,7 +469,7 @@
     <section class="grid">
       <article class="panel kpi hide-on-search">
         <div>
-          <div class="kpi-label">Next up</div>
+          <div class="kpi-label">Next Up</div>
           <div class="kpi-value" id="nextCompany">—</div>
           <div class="kpi-meta" id="nextMeta">Waiting for data.</div>
         </div>
@@ -477,7 +478,7 @@
 
       <article class="panel kpi hide-on-search">
         <div>
-          <div class="kpi-label">Total layoffs in current file</div>
+          <div class="kpi-label">Total Layoffs in Current File</div>
           <div class="kpi-value" id="totalLayoffs">—</div>
           <div class="kpi-meta" id="totalMeta">Across all rows in the detailed WARN report.</div>
         </div>
@@ -485,27 +486,27 @@
 
       <article class="panel kpi hide-on-search">
         <div>
-          <div class="kpi-label">Counties impacted</div>
+          <div class="kpi-label">Counties Impacted</div>
           <div class="kpi-value" id="countyCount">—</div>
           <div class="kpi-meta" id="countyMeta">Unique California counties represented in the current workbook.</div>
         </div>
       </article>
 
       <article class="panel leaderboard hide-on-search">
-        <h2 class="section-title">Layoff leaders</h2>
+        <h2 class="section-title">Layoff Leaders</h2>
         <div class="meta-note">Top 10 companies ranked by total layoffs in the current file.</div>
         <div class="leaderboard-list" id="leaderboard"></div>
       </article>
 
       <article class="panel map-panel hide-on-search">
-        <h2 class="section-title">County impact map</h2>
+        <h2 class="section-title">County Impact Map</h2>
         <div class="meta-note">California counties are shaded by total layoffs from the workbook.</div>
         <div id="map"></div>
         <div class="footnote">Hover or tap a county for totals. Counties without reported layoffs remain lightly shaded.</div>
       </article>
 
       <article class="panel table-panel">
-        <h2 class="section-title">Raw WARN data</h2>
+        <h2 class="section-title">Raw WARN Data</h2>
         <div class="table-toolbar">
           <select id="countyFilter" class="select">
             <option value="">All counties</option>
@@ -523,12 +524,12 @@
             <thead>
               <tr>
                 <th data-sort="county">County</th>
-                <th data-sort="effectiveDate">Effective date</th>
+                <th data-sort="effectiveDate">Effective Date</th>
                 <th data-sort="company">Company</th>
                 <th data-sort="employees">Employees</th>
                 <th data-sort="layoffClosure">Type</th>
-                <th data-sort="noticeDate">Notice date</th>
-                <th data-sort="processedDate">Processed date</th>
+                <th data-sort="noticeDate">Notice Date</th>
+                <th data-sort="processedDate">Processed Date</th>
                 <th data-sort="industry">Industry</th>
                 <th data-sort="address">Address</th>
               </tr>
@@ -579,9 +580,6 @@
     };
 
     const els = {
-      reloadBtn: document.getElementById('reloadBtn'),
-      uploadBtn: document.getElementById('uploadBtn'),
-      fileInput: document.getElementById('fileInput'),
       statusText: document.getElementById('statusText'),
       errorBox: document.getElementById('errorBox'),
       nextCompany: document.getElementById('nextCompany'),
@@ -783,15 +781,29 @@
     function renderLeaderboard(rows) {
       const items = buildLeaderboard(rows);
       els.leaderboard.innerHTML = items.map((item, index) => `
-        <div class="leaderboard-item">
+        <button class="leaderboard-item" type="button" data-company="${escapeHtml(item.company)}" aria-label="Filter table to ${escapeHtml(item.company)}">
           <div class="leaderboard-rank">${index + 1}</div>
           <div>
             <div class="leaderboard-name">${escapeHtml(item.company)}</div>
             <div class="leaderboard-sub">${item.eventCount} event${item.eventCount === 1 ? '' : 's'} across ${item.counties.size} count${item.counties.size === 1 ? 'y' : 'ies'}</div>
           </div>
           <div class="leaderboard-value">${formatNumber(item.totalEmployees)}</div>
-        </div>
+        </button>
       `).join('');
+
+      els.leaderboard.querySelectorAll('.leaderboard-item').forEach((item) => {
+        item.addEventListener('click', () => {
+          const company = item.getAttribute('data-company') || '';
+          applyCompanyFilter(company);
+        });
+      });
+    }
+
+    function applyCompanyFilter(company) {
+      els.searchInput.value = company;
+      state.currentPage = 1;
+      applyFilters();
+      document.querySelector('.table-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function renderKpis(rows) {
@@ -1023,15 +1035,6 @@
     }
 
     function attachListeners() {
-      els.reloadBtn.addEventListener('click', () => loadLiveWorkbook());
-      els.uploadBtn.addEventListener('click', () => els.fileInput.click());
-      els.fileInput.addEventListener('change', async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const buffer = await file.arrayBuffer();
-        await hydrateDashboard(buffer, `Loaded local file: ${file.name}`);
-      });
-
       els.searchInput.addEventListener('input', applyFilters);
       els.countyFilter.addEventListener('change', applyFilters);
       els.rowsPerPage.addEventListener('change', () => {
@@ -1122,9 +1125,8 @@
           The app could not load the local workbook from <code>${WARN_URL}</code>.<br><br>
           ${escapeHtml(error?.message || 'Unknown error.')}<br><br>
           Confirm that the repository contains <code>data/warn_report.xlsx</code> and that GitHub Pages is serving the latest build.
-          You can still use <strong>“Load manual .xlsx instead”</strong> to preview a file locally.
         `);
-        setStatus('Data refresh failed. Waiting for manual file upload.');
+        setStatus('Data refresh failed.');
       }
     }
 
