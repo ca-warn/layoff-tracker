@@ -371,6 +371,13 @@
       align-items: center;
     }
 
+    mark {
+      background: rgba(140, 242, 211, 0.3);
+      color: #f5fffb;
+      padding: 0 2px;
+      border-radius: 4px;
+    }
+
     .error {
       margin-top: 16px;
       padding: 14px 16px;
@@ -555,6 +562,7 @@
     const state = {
       rawRows: [],
       filteredRows: [],
+      searchTerms: [],
       sortKey: 'effectiveDate',
       sortDir: 'asc',
       currentPage: 1,
@@ -826,6 +834,37 @@
         .replace(/'/g, '&#039;');
     }
 
+    function escapeRegex(value) {
+      return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlightMatches(value, terms = []) {
+      const text = String(value || '');
+      if (!terms.length) return escapeHtml(text);
+
+      const escapedTerms = [...new Set(terms)]
+        .map(term => term.trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length)
+        .map(escapeRegex);
+
+      if (!escapedTerms.length) return escapeHtml(text);
+
+      const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+      let output = '';
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        output += escapeHtml(text.slice(lastIndex, match.index));
+        output += `<mark><strong>${escapeHtml(match[0])}</strong></mark>`;
+        lastIndex = match.index + match[0].length;
+      }
+
+      output += escapeHtml(text.slice(lastIndex));
+      return output;
+    }
+
     function sameDay(a, b) {
       return a && b
         && a.getFullYear() === b.getFullYear()
@@ -855,9 +894,11 @@
 
     function applyFilters() {
       const query = slug(els.searchInput.value);
+      state.searchTerms = query ? query.split(' ').filter(Boolean) : [];
       const county = els.countyFilter.value;
       const filtered = state.rawRows.filter(row => {
-        const matchesQuery = !query || row._search.includes(query);
+        const matchesQuery = !state.searchTerms.length
+          || state.searchTerms.every(term => row._search.includes(term));
         const matchesCounty = !county || row.countyNormalized === county;
         return matchesQuery && matchesCounty;
       });
@@ -875,15 +916,15 @@
 
       els.tableBody.innerHTML = pageRows.map(row => `
         <tr>
-          <td>${escapeHtml(row.county)}</td>
+          <td>${highlightMatches(row.county, state.searchTerms)}</td>
           <td><span class="pill">${formatDate(row.effectiveDate)}</span></td>
-          <td>${escapeHtml(row.company)}</td>
+          <td>${highlightMatches(row.company, state.searchTerms)}</td>
           <td>${formatNumber(row.employees)}</td>
-          <td>${escapeHtml(row.layoffClosure)}</td>
+          <td>${highlightMatches(row.layoffClosure, state.searchTerms)}</td>
           <td>${formatDate(row.noticeDate)}</td>
           <td>${formatDate(row.processedDate)}</td>
-          <td>${escapeHtml(row.industry)}</td>
-          <td>${escapeHtml(row.address)}</td>
+          <td>${highlightMatches(row.industry, state.searchTerms)}</td>
+          <td>${highlightMatches(row.address, state.searchTerms)}</td>
         </tr>
       `).join('');
 
