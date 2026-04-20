@@ -913,7 +913,6 @@
 
       if (next) {
         const tied = upcoming.filter(row => sameDay(row.effectiveDate, next.effectiveDate));
-        state.nextUpDateFilter = next.effectiveDate;
         els.nextCompany.textContent = next.company;
         els.nextCompany.disabled = false;
         els.nextCompany.setAttribute('aria-label', `Filter table to ${next.company}`);
@@ -924,7 +923,6 @@
           ? `There are ${tied.length} WARN entries on that date.`
           : 'Earliest upcoming effective date in the workbook.';
       } else {
-        state.nextUpDateFilter = null;
         els.nextCompany.textContent = 'No dated layoff events found';
         els.nextCompany.disabled = true;
         els.nextCompany.removeAttribute('aria-label');
