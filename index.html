@@ -667,6 +667,7 @@
       lastLoadedAt: null,
       geoJsonLoaded: false,
       nextUpDateFilter: null,
+      nextUpMinDateFilter: null,
       nextUpTargetDate: null
     };
 
@@ -894,6 +895,7 @@
 
     function applyCompanyFilter(company) {
       state.nextUpDateFilter = null;
+      state.nextUpMinDateFilter = null;
       els.searchInput.value = company;
       state.currentPage = 1;
       applyFilters();
@@ -901,8 +903,8 @@
     }
 
     function applyNextCompaniesFilter() {
-      if (!(state.nextUpTargetDate instanceof Date)) return;
       state.nextUpDateFilter = null;
+      state.nextUpMinDateFilter = startOfDay(TODAY);
       els.searchInput.value = NEXT_COMPANIES_SORT_MARKER;
       els.countyFilter.value = '';
       state.sortKey = 'effectiveDate';
@@ -1032,20 +1034,23 @@
         const matchesCounty = !county || row.countyNormalized === county;
         const matchesNextUpDate = !(state.nextUpDateFilter instanceof Date)
           || sameDay(row.effectiveDate, state.nextUpDateFilter);
-        return matchesQuery && matchesCounty && matchesNextUpDate;
+        const matchesNextUpMinDate = !(state.nextUpMinDateFilter instanceof Date)
+          || (row.effectiveDate instanceof Date && row.effectiveDate >= state.nextUpMinDateFilter);
+        return matchesQuery && matchesCounty && matchesNextUpDate && matchesNextUpMinDate;
       });
       state.filteredRows = sortRows(filtered);
       state.currentPage = 1;
       renderLeaderboard(filtered);
-      const isSearching = Boolean(query) || state.nextUpDateFilter instanceof Date;
+      const isSearching = Boolean(query) || state.nextUpDateFilter instanceof Date || state.nextUpMinDateFilter instanceof Date;
       els.grid.classList.toggle('search-active', isSearching);
       els.clearSearchBtn.hidden = !query;
       renderTable();
     }
 
     function clearSearch() {
-      if (!els.searchInput.value.trim() && !(state.nextUpDateFilter instanceof Date)) return;
+      if (!els.searchInput.value.trim() && !(state.nextUpDateFilter instanceof Date) && !(state.nextUpMinDateFilter instanceof Date)) return;
       state.nextUpDateFilter = null;
+      state.nextUpMinDateFilter = null;
       els.searchInput.value = '';
       state.currentPage = 1;
       applyFilters();
@@ -1169,6 +1174,7 @@
     function attachListeners() {
       els.searchInput.addEventListener('input', () => {
         state.nextUpDateFilter = null;
+        state.nextUpMinDateFilter = null;
         applyFilters();
       });
       els.clearSearchBtn.addEventListener('click', clearSearch);
