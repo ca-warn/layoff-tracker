@@ -633,8 +633,28 @@
       return `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`;
     }
 
+    function findDetailedWarnSheet(workbook) {
+      const normalized = workbook.SheetNames.map(name => ({
+        name,
+        normalized: name.toLowerCase().replace(/\s+/g, ' ').trim()
+      }));
+
+      const preferred = normalized.find(sheet =>
+        sheet.normalized.includes('detailed') && sheet.normalized.includes('warn')
+      );
+      if (preferred) return workbook.Sheets[preferred.name];
+
+      const warnOnly = normalized.find(sheet => sheet.normalized.includes('warn'));
+      if (warnOnly) return workbook.Sheets[warnOnly.name];
+
+      return workbook.Sheets[workbook.SheetNames[0]];
+    }
+
     function buildRowsFromSheet(workbook) {
-      const sheet = workbook.Sheets['Detailed WARN Report '] || workbook.Sheets[workbook.SheetNames[2]];
+      const sheet = findDetailedWarnSheet(workbook);
+      if (!sheet) {
+        throw new Error('The workbook does not contain any readable worksheets.');
+      }
       const matrix = XLSX.utils.sheet_to_json(sheet, {
         header: 1,
         raw: false,
@@ -972,6 +992,10 @@
       const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
       const rows = buildRowsFromSheet(workbook);
 
+      if (!rows.length) {
+        throw new Error('The workbook loaded, but no valid WARN rows were parsed from the detailed sheet.');
+      }
+
       state.rawRows = rows;
       state.filteredRows = rows;
       state.countyTotals = computeCountyTotals(rows);
@@ -982,7 +1006,16 @@
       renderKpis(rows);
       renderLeaderboard(rows);
       applyFilters();
-      await renderMap();
+      try {
+        await renderMap();
+      } catch (error) {
+        console.error('Map rendering failed:', error);
+        showError(`
+          <strong>County map unavailable.</strong><br>
+          The workbook data loaded successfully, but county boundaries could not be fetched right now.
+          KPI cards, leaderboard, and table data are still available below.
+        `);
+      }
 
       setStatus(`${statusPrefix} • ${formatDate(state.lastLoadedAt)} ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(state.lastLoadedAt)}`);
     }
@@ -991,15 +1024,22 @@
       clearError();
       setStatus('Downloading live workbook…');
       try {
-        const response = await fetch(WARN_URL);
+        const response = await fetch(WARN_URL, { cache: 'no-store' });
         if (!response.ok) {
-          throw new Error(`Spreadsheet request failed with status ${response.status}.`);
+          throw new Error(`Spreadsheet request failed with status ${response.status} (${response.statusText || 'unknown status'}).`);
         }
         const buffer = await response.arrayBuffer();
         await hydrateDashboard(buffer);
       } catch (error) {
-        console.error(error);
-        showError(`\n          <strong>Data refresh failed.</strong><br>\n          The app could not load the local workbook from <code>${WARN_URL}</code>.<br><br>\n          Confirm that the GitHub Action has committed <code>data/warn_report.xlsx</code> and that GitHub Pages is serving the latest build. You can still use <strong>“Load manual .xlsx instead”</strong> to preview a file locally.\n        `);\n        setStatus('Data refresh failed. Waiting for manual file upload.');
+        console.error('Workbook load failed:', error);
+        showError(`
+          <strong>Data refresh failed.</strong><br>
+          The app could not load the local workbook from <code>${WARN_URL}</code>.<br><br>
+          ${escapeHtml(error?.message || 'Unknown error.')}<br><br>
+          Confirm that the repository contains <code>data/warn_report.xlsx</code> and that GitHub Pages is serving the latest build.
+          You can still use <strong>“Load manual .xlsx instead”</strong> to preview a file locally.
+        `);
+        setStatus('Data refresh failed. Waiting for manual file upload.');
       }
     }
 
