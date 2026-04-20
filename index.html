@@ -645,6 +645,7 @@
   <script>
     const WARN_URL = './data/warn_report.xlsx';
     const COUNTY_GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/california-counties.geojson';
+    const NEXT_COMPANIES_SORT_MARKER = 'sorted by effective date';
     const TODAY = new Date();
 
     const state = {
@@ -902,7 +903,7 @@
     function applyNextCompaniesFilter() {
       if (!(state.nextUpTargetDate instanceof Date)) return;
       state.nextUpDateFilter = null;
-      els.searchInput.value = '';
+      els.searchInput.value = NEXT_COMPANIES_SORT_MARKER;
       els.countyFilter.value = '';
       state.sortKey = 'effectiveDate';
       state.sortDir = 'asc';
@@ -1020,7 +1021,10 @@
 
     function applyFilters() {
       const query = slug(els.searchInput.value);
-      state.searchTerms = query ? query.split(' ').filter(Boolean) : [];
+      const isNextCompaniesSortMarker = query === slug(NEXT_COMPANIES_SORT_MARKER);
+      state.searchTerms = (query && !isNextCompaniesSortMarker)
+        ? query.split(' ').filter(Boolean)
+        : [];
       const county = els.countyFilter.value;
       const filtered = state.rawRows.filter(row => {
         const matchesQuery = !state.searchTerms.length
