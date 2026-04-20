@@ -162,6 +162,33 @@
       letter-spacing: -0.04em;
     }
 
+    .next-company-button {
+      all: unset;
+      display: inline-block;
+      font-size: clamp(1.8rem, 3.2vw, 3.1rem);
+      line-height: 1.05;
+      margin: 10px 0;
+      letter-spacing: -0.04em;
+      font-weight: 700;
+      color: var(--text);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    .next-company-button:hover,
+    .next-company-button:focus-visible {
+      border-color: var(--accent-2);
+      color: #ffffff;
+      outline: none;
+    }
+
+    .next-company-button[disabled] {
+      cursor: default;
+      color: var(--muted);
+      border-bottom-color: transparent;
+    }
+
     .kpi-meta {
       color: var(--muted);
       line-height: 1.55;
@@ -511,7 +538,7 @@
       <article class="panel kpi hide-on-search">
         <div>
           <div class="kpi-label">Next Up</div>
-          <div class="kpi-value" id="nextCompany">—</div>
+          <button type="button" class="next-company-button" id="nextCompany" disabled>—</button>
           <div class="kpi-meta" id="nextMeta">Waiting for data.</div>
         </div>
         <div class="footnote" id="nextFootnote"></div>
@@ -860,12 +887,18 @@
       if (next) {
         const tied = upcoming.filter(row => sameDay(row.effectiveDate, next.effectiveDate));
         els.nextCompany.textContent = next.company;
+        els.nextCompany.disabled = false;
+        els.nextCompany.setAttribute('aria-label', `Filter table to ${next.company}`);
+        els.nextCompany.onclick = () => applyCompanyFilter(next.company);
         els.nextMeta.innerHTML = `${formatNumber(next.employees)} workers • ${escapeHtml(next.county)} • ${formatDate(next.effectiveDate)}`;
         els.nextFootnote.textContent = tied.length > 1
-          ? `There are ${tied.length} WARN entries on that date. This card shows the largest one.`
-          : 'Earliest upcoming effective date in the workbook.';
+          ? `There are ${tied.length} WARN entries on that date. Click the company name to filter the table.`
+          : 'Earliest upcoming effective date in the workbook. Click the company name to filter the table.';
       } else {
         els.nextCompany.textContent = 'No dated layoff events found';
+        els.nextCompany.disabled = true;
+        els.nextCompany.removeAttribute('aria-label');
+        els.nextCompany.onclick = null;
         els.nextMeta.textContent = 'The workbook did not include parsable effective dates.';
         els.nextFootnote.textContent = '';
       }
