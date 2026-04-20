@@ -189,6 +189,19 @@
       border-bottom-color: transparent;
     }
 
+    .next-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.92rem;
+      color: var(--accent-2);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .next-link[hidden] {
+      display: none;
+    }
+
     .kpi-meta {
       color: var(--muted);
       line-height: 1.55;
@@ -540,6 +553,7 @@
           <div class="kpi-label">Next Up</div>
           <button type="button" class="next-company-button" id="nextCompany" disabled>—</button>
           <div class="kpi-meta" id="nextMeta">Waiting for data.</div>
+          <a href="#" id="showNextCompaniesLink" class="next-link" hidden>Show all next companies</a>
         </div>
         <div class="footnote" id="nextFootnote"></div>
       </article>
@@ -644,13 +658,15 @@
       legendStops: [],
       workbookDateRange: '',
       lastLoadedAt: null,
-      geoJsonLoaded: false
+      geoJsonLoaded: false,
+      nextUpDateFilter: null
     };
 
     const els = {
       statusText: document.getElementById('statusText'),
       errorBox: document.getElementById('errorBox'),
       nextCompany: document.getElementById('nextCompany'),
+      showNextCompaniesLink: document.getElementById('showNextCompaniesLink'),
       nextMeta: document.getElementById('nextMeta'),
       nextFootnote: document.getElementById('nextFootnote'),
       totalLayoffs: document.getElementById('totalLayoffs'),
@@ -869,7 +885,18 @@
     }
 
     function applyCompanyFilter(company) {
+      state.nextUpDateFilter = null;
       els.searchInput.value = company;
+      state.currentPage = 1;
+      applyFilters();
+      document.querySelector('.table-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function applyNextCompaniesFilter() {
+      if (!(state.nextUpDateFilter instanceof Date)) return;
+      els.searchInput.value = '';
+      state.sortKey = 'effectiveDate';
+      state.sortDir = 'asc';
       state.currentPage = 1;
       applyFilters();
       document.querySelector('.table-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -886,20 +913,24 @@
 
       if (next) {
         const tied = upcoming.filter(row => sameDay(row.effectiveDate, next.effectiveDate));
+        state.nextUpDateFilter = next.effectiveDate;
         els.nextCompany.textContent = next.company;
         els.nextCompany.disabled = false;
         els.nextCompany.setAttribute('aria-label', `Filter table to ${next.company}`);
         els.nextCompany.onclick = () => applyCompanyFilter(next.company);
         els.nextMeta.innerHTML = `${formatNumber(next.employees)} workers • ${escapeHtml(next.county)} • ${formatDate(next.effectiveDate)}`;
+        els.showNextCompaniesLink.hidden = false;
         els.nextFootnote.textContent = tied.length > 1
-          ? `There are ${tied.length} WARN entries on that date. Click the company name to filter the table.`
-          : 'Earliest upcoming effective date in the workbook. Click the company name to filter the table.';
+          ? `There are ${tied.length} WARN entries on that date.`
+          : 'Earliest upcoming effective date in the workbook.';
       } else {
+        state.nextUpDateFilter = null;
         els.nextCompany.textContent = 'No dated layoff events found';
         els.nextCompany.disabled = true;
         els.nextCompany.removeAttribute('aria-label');
         els.nextCompany.onclick = null;
         els.nextMeta.textContent = 'The workbook did not include parsable effective dates.';
+        els.showNextCompaniesLink.hidden = true;
         els.nextFootnote.textContent = '';
       }
 
@@ -986,18 +1017,21 @@
         const matchesQuery = !state.searchTerms.length
           || state.searchTerms.every(term => row._search.includes(term));
         const matchesCounty = !county || row.countyNormalized === county;
-        return matchesQuery && matchesCounty;
+        const matchesNextUpDate = !(state.nextUpDateFilter instanceof Date)
+          || sameDay(row.effectiveDate, state.nextUpDateFilter);
+        return matchesQuery && matchesCounty && matchesNextUpDate;
       });
       state.filteredRows = sortRows(filtered);
       state.currentPage = 1;
-      const isSearching = Boolean(query);
+      const isSearching = Boolean(query) || state.nextUpDateFilter instanceof Date;
       els.grid.classList.toggle('search-active', isSearching);
       els.clearSearchBtn.hidden = !query;
       renderTable();
     }
 
     function clearSearch() {
-      if (!els.searchInput.value.trim()) return;
+      if (!els.searchInput.value.trim() && !(state.nextUpDateFilter instanceof Date)) return;
+      state.nextUpDateFilter = null;
       els.searchInput.value = '';
       state.currentPage = 1;
       applyFilters();
@@ -1119,8 +1153,15 @@
     }
 
     function attachListeners() {
-      els.searchInput.addEventListener('input', applyFilters);
+      els.searchInput.addEventListener('input', () => {
+        state.nextUpDateFilter = null;
+        applyFilters();
+      });
       els.clearSearchBtn.addEventListener('click', clearSearch);
+      els.showNextCompaniesLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        applyNextCompaniesFilter();
+      });
       els.countyFilter.addEventListener('change', applyFilters);
       els.rowsPerPage.addEventListener('change', () => {
         state.rowsPerPage = Number(els.rowsPerPage.value) || 25;
