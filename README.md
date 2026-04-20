@@ -1,6 +1,6 @@
-# California WARN Watch
+# California Layoff Tracker
 
-California WARN Watch is a lightweight, static dashboard for exploring layoff notices published by the State of California under the WARN Act.
+California Layoff Tracker is a lightweight, static dashboard for exploring layoff notices published by the State of California under the WARN Act.
 
 The app renders:
 
