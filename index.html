@@ -665,7 +665,8 @@
       workbookDateRange: '',
       lastLoadedAt: null,
       geoJsonLoaded: false,
-      nextUpDateFilter: null
+      nextUpDateFilter: null,
+      nextUpTargetDate: null
     };
 
     const els = {
@@ -899,7 +900,8 @@
     }
 
     function applyNextCompaniesFilter() {
-      if (!(state.nextUpDateFilter instanceof Date)) return;
+      if (!(state.nextUpTargetDate instanceof Date)) return;
+      state.nextUpDateFilter = new Date(state.nextUpTargetDate.getTime());
       els.searchInput.value = '';
       state.sortKey = 'effectiveDate';
       state.sortDir = 'asc';
@@ -919,6 +921,7 @@
 
       if (next) {
         const tied = upcoming.filter(row => sameDay(row.effectiveDate, next.effectiveDate));
+        state.nextUpTargetDate = startOfDay(next.effectiveDate);
         els.nextCompany.textContent = next.company;
         els.nextCompany.disabled = false;
         els.nextCompany.setAttribute('aria-label', `Filter table to ${next.company}`);
@@ -929,6 +932,7 @@
           ? `There are ${tied.length} WARN entries on that date.`
           : '';
       } else {
+        state.nextUpTargetDate = null;
         els.nextCompany.textContent = 'No dated layoff events found';
         els.nextCompany.disabled = true;
         els.nextCompany.removeAttribute('aria-label');
