@@ -1031,6 +1031,7 @@
       });
       state.filteredRows = sortRows(filtered);
       state.currentPage = 1;
+      renderLeaderboard(filtered);
       const isSearching = Boolean(query) || state.nextUpDateFilter instanceof Date;
       els.grid.classList.toggle('search-active', isSearching);
       els.clearSearchBtn.hidden = !query;
