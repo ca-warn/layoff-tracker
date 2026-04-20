@@ -611,9 +611,9 @@
           <table>
             <thead>
               <tr>
+                <th data-sort="company">Company</th>
                 <th data-sort="county">County</th>
                 <th data-sort="effectiveDate">Effective Date</th>
-                <th data-sort="company">Company</th>
                 <th data-sort="employees">Employees</th>
                 <th data-sort="layoffClosure">Type</th>
                 <th data-sort="noticeDate">Notice Date</th>
@@ -1059,9 +1059,9 @@
 
       els.tableBody.innerHTML = pageRows.map(row => `
         <tr>
+          <td>${highlightMatches(row.company, state.searchTerms)}</td>
           <td>${highlightMatches(row.county, state.searchTerms)}</td>
           <td><span class="pill">${formatDate(row.effectiveDate)}</span></td>
-          <td>${highlightMatches(row.company, state.searchTerms)}</td>
           <td>${formatNumber(row.employees)}</td>
           <td>${highlightMatches(row.layoffClosure, state.searchTerms)}</td>
           <td>${formatDate(row.noticeDate)}</td>
