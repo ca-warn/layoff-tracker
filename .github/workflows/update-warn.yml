@@ -16,10 +16,34 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Resolve latest WARN workbook URL
+        id: source
+        run: |
+          set -euo pipefail
+
+          page_url="https://edd.ca.gov/en/jobs_and_training/Layoff_Services_WARN/"
+          legacy_url="https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx"
+
+          page_html="$(curl -fsSL -A 'Mozilla/5.0 (GitHub Actions WARN updater)' "$page_url")"
+          resolved_url="$(printf '%s' "$page_html" | grep -Eo 'https://edd\.ca\.gov/siteassets/files/jobs_and_training/warn/[^"[:space:]]+\.xlsx' | head -n1 || true)"
+
+          if [ -z "$resolved_url" ]; then
+            resolved_url="$legacy_url"
+          fi
+
+          echo "url=$resolved_url" >> "$GITHUB_OUTPUT"
+
       - name: Download latest WARN file
         run: |
+          set -euo pipefail
+
           mkdir -p data
-          curl -fL "https://edd.ca.gov/siteassets/files/jobs_and_training/warn/warn_report1.xlsx" \
+          curl -fL \
+            --retry 3 \
+            --retry-delay 5 \
+            -A 'Mozilla/5.0 (GitHub Actions WARN updater)' \
+            -e 'https://edd.ca.gov/en/jobs_and_training/Layoff_Services_WARN/' \
+            "${{ steps.source.outputs.url }}" \
             -o data/warn_report.xlsx
 
       - name: Detect changes
