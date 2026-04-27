@@ -1,0 +1,28 @@
+{
+  "archive_key": "2026-04-27",
+  "planned_date": "2026-04-27",
+  "generated_at": "2026-04-27T20:15:22Z",
+  "source_workbook": "data/warn_report.xlsx",
+  "post_type": "next_event",
+  "fingerprint": "2a58175c5eb7473f2e629d6d4b92901372331308",
+  "stats": {
+    "total_layoffs": 65709,
+    "county_count": 46,
+    "row_count": 1295,
+    "range_start": "2025-01-05",
+    "range_end": "2026-12-30"
+  },
+  "social": {
+    "linkedin": "The next scheduled layoff in California's current WARN file is at Riot Games in Los Angeles County, effective Apr 27, 2026.\n\nThe notice lists 26 affected workers.\n\nLocation: 12333 W Olympic Blvd. Los Angeles CA 90064.\n\nIndustry: 51 Information."
+  },
+  "event": {
+    "company": "Riot Games",
+    "county": "Los Angeles County",
+    "county_normalized": "Los Angeles",
+    "address": "12333 W Olympic Blvd. Los Angeles CA 90064",
+    "effective_date": "2026-04-27",
+    "employees": 26,
+    "industry": "51 Information",
+    "layoff_closure": "Layoff Permanent"
+  }
+}
