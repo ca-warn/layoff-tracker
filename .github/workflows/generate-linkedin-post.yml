@@ -1,0 +1,53 @@
+name: Generate LinkedIn Post
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5 13 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: layoff-tracker-linkedin-post
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate deterministic LinkedIn post archive
+        id: generate
+        run: python3 scripts/generate_linkedin_post.py
+
+      - name: Publish LinkedIn post
+        id: publish
+        if: steps.generate.outputs.archive_key != '' && secrets.LINKEDIN_ACCESS_TOKEN != ''
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+          LINKEDIN_API_VERSION: ${{ secrets.LINKEDIN_API_VERSION }}
+        run: python3 scripts/publish_linkedin_post.py --date "${{ steps.generate.outputs.archive_key }}"
+
+      - name: Commit archive state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add social/linkedin-posts
+          if git diff --cached --quiet; then
+            echo "No archive changes to commit."
+            exit 0
+          fi
+          git commit -m "Update LinkedIn archive for ${{ steps.generate.outputs.archive_key }}"
+          git push

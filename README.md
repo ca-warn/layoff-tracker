@@ -15,6 +15,10 @@ Data is sourced from the workbook at `data/warn_report.xlsx` and loaded client-s
 
 ```text
 .
+├── .github/workflows/       # Scheduled GitHub automation
+├── scripts/                 # Deterministic social-post generator
+├── social/linkedin-posts/   # Dated LinkedIn post archives
+├── tests/                   # Automation tests
 ├── index.html              # Full dashboard app (HTML, CSS, JS)
 └── data/
     ├── warn_report.xlsx    # WARN source data consumed by the app
@@ -55,6 +59,47 @@ npx serve .
 ## Deployment
 
 This project is static and can be deployed to any static host (GitHub Pages, Netlify, Vercel static output, S3 + CloudFront, etc.).
+
+## GitHub Social Workflow
+
+This repo includes a scheduled GitHub Actions workflow at `.github/workflows/generate-linkedin-post.yml`.
+
+It runs daily and:
+
+- parses `data/warn_report.xlsx` directly with Python standard-library code
+- uses deterministic copy templates only; no Codex or LLM calls are involved
+- prefers the earliest unseen upcoming WARN event for the next LinkedIn post
+- falls back to summary posts only when all upcoming event candidates have already been archived
+- suppresses duplicates by fingerprinting the underlying data, including company, county, address, effective date, and employee count
+- commits each new post to `social/linkedin-posts/YYYY-MM-DD`
+- can publish the archived post to LinkedIn when `LINKEDIN_ACCESS_TOKEN` is configured in GitHub Actions secrets
+
+Each archive contains:
+
+- `post.json` with structured metadata and the LinkedIn copy
+- `post-copy.txt` with a plain-text version of the generated post
+- `linkedin-publication.json` after successful publication
+
+### Run Locally
+
+```bash
+python3 scripts/generate_linkedin_post.py
+CLIENT_ID=... python3 scripts/linkedin_oauth_helper.py authorize-url
+CLIENT_ID=... PRIMARY_CLIENT_SECRET=... python3 scripts/linkedin_oauth_helper.py exchange-code --code YOUR_CODE
+LINKEDIN_ACCESS_TOKEN=... python3 scripts/resolve_linkedin_member.py
+LINKEDIN_ACCESS_TOKEN=... python3 scripts/publish_linkedin_post.py --date YYYY-MM-DD
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
+### GitHub Secrets
+
+To let GitHub Actions publish automatically, add:
+
+- `LINKEDIN_ACCESS_TOKEN` required
+- `LINKEDIN_AUTHOR_URN` optional; if omitted, the publisher derives it from LinkedIn `userinfo`
+- `LINKEDIN_API_VERSION` optional; if omitted, the publisher tries the current `YYYYMM` version and then the previous month
+
+Your existing `CLIENT_ID` and `PRIMARY_CLIENT_SECRET` secrets are useful for generating a member access token, but they do not let GitHub Actions publish by themselves. The publish step uses a member token, not just the app credentials.
 
 ## Notes
 
